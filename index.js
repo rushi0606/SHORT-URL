@@ -1,6 +1,8 @@
 const express = require("express");
+const path = require("path");
 const { connectToMongoDB } = require("./connection");
 const urlRoutes = require("./routes/url");
+const staticRouter = require("./routes/staticRouter");
 const URL = require("./models/url");
 
 const app = express();
@@ -11,14 +13,23 @@ connectToMongoDB("mongodb://localhost:27017/short-url")
         console.log("Connected to MongoDB");
     });
 
+app.set("view engine", "ejs");
+app.set("views", path.resolve("./views"));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+
 app.use("/url", urlRoutes);
+app.use("/",staticRouter);
 
 app.get("/:shortId", async (req, res) => {
+    const shortId = req.params.shortId;
+
+    console.log("Short ID:", shortId);
+
     const entry = await URL.findOneAndUpdate(
-        { shortId: req.params.shortId },
+        { shortId: shortId },
         {
             $push: {
                 visitHistory: {
@@ -26,16 +37,17 @@ app.get("/:shortId", async (req, res) => {
                 },
             },
         },
-        { new: true }
+        {
+            returnDocument: "after",
+        }
     );
 
-    console.log(entry);
 
     if (!entry) {
         return res.status(404).send("Short URL not found");
     }
 
-    res.redirect(entry.redirectUrl);
+    return res.redirect(entry.redirectUrl);
 });
 
 app.listen(PORT, () => {
