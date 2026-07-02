@@ -1,12 +1,13 @@
 const express = require("express");
 const { handleGenerateShortUrl } = require("../controllers/url");
-const { restrictToLoggedinUserOnly } = require("../middleware/auth");
+const { checkForAuthentication, restrictTo } = require("../middleware/auth");
 
 const router = express.Router();
 
 router.post(
     "/",
-    restrictToLoggedinUserOnly,
+    checkForAuthentication,
+    restrictTo(["NORMAL", "ADMIN"]),
     handleGenerateShortUrl
 );
 
